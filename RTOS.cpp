@@ -62,7 +62,7 @@ void TaskManager::TaskSwitching()
             if (taskQueue[i].elapsedTick >= taskQueue[i].tickInterval) {            
                 activeTaskIndex = i;
                 taskQueue[activeTaskIndex].startTick=millis();            
-                taskQueue[activeTaskIndex].Entry();  
+                taskQueue[activeTaskIndex].entry();  
                 taskQueue[activeTaskIndex].executionTick = millis()-taskQueue[activeTaskIndex].startTick;
                 //taskQueue[activeTaskIndex].elapsedTick -= taskQueue[activeTaskIndex].tickInterval;
                 taskQueue[activeTaskIndex].elapsedTick =0;
@@ -118,7 +118,7 @@ void TaskManager::run()
 Task* TaskManager::addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval, TaskState state)
 {
     if (numberOfTask<MaxTaskNumber) {
-      taskQueue[numberOfTask].Entry = taskEntry;
+      taskQueue[numberOfTask].entry = taskEntry;
       taskQueue[numberOfTask].name = taskName;
       taskQueue[numberOfTask].tickInterval = tickInterval;
       taskQueue[numberOfTask].elapsedTick = 0;

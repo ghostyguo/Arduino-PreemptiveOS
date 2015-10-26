@@ -26,7 +26,7 @@ class Task {
         TaskState runningState;
         String name; 
         
-        void (*Entry)();
+        void (*entry)();
         void elapsedShift(long tickShift);
         void setState(TaskState taskState);
         void suspend();
