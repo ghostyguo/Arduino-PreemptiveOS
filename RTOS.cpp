@@ -4,53 +4,20 @@
  */
 #include "RTOS.h"
 
-#define  MaxTaskNumber 10
-
+// extern
 PreemptiveOS RTOS;
 
-unsigned long switchCount=0;
-//
-Task taskQueue[MaxTaskNumber];
-int taskRunningIndex=-1;
-int numberOfTask=0;
+// local
+const char *strRunningState[] = {"RUNNING","SUSPEND"};
 
-void TaskSwitching()
-{  
-    for (int i=0; i<numberOfTask; i++) {
-        if (taskQueue[i].State==RUNNING) {
-            if (taskQueue[i].ElapsedTick >= taskQueue[i].TickInterval) {            
-                taskRunningIndex = i;
-                taskQueue[taskRunningIndex].startMillis=millis();            
-                taskQueue[taskRunningIndex].Entry();  
-                taskQueue[taskRunningIndex].ExecutionTick = millis()-taskQueue[taskRunningIndex].startMillis;
-                //taskQueue[taskRunningIndex].ElapsedTick -= taskQueue[taskRunningIndex].TickInterval;
-                taskQueue[taskRunningIndex].ElapsedTick =0;
-            
-                // validate the task
-                /*
-                if (taskQueue[taskRunningIndex].ExecutionTick>taskQueue[taskRunningIndex].TickInterval) {
-                    // run time too long
-                    Serial.print("\n****** RTOS : Task # ");  
-                    Serial.print(taskRunningIndex);
-                    Serial.print(" Exhausted Tick = ");
-                    Serial.println(taskQueue[taskRunningIndex].ExecutionTick);
-                    Serial.println();
-                }
-                */
-            } else {
-                taskRunningIndex = -1;
-            }
-        } else if (taskQueue[i].State==SUSPEND) {
-            // Suspend Process
-        }
-    }
-}
-
-void  Task::setState(TaskState state)
+/*
+ * Task Class
+ */
+void  Task::setState(TaskState taskState)
 {
-    State = state;
-    ExecutionTick = 0;
-    ElapsedTick = 0; 
+    runningState = taskState;
+    executionTick = 0;
+    elapsedTick = 0; 
 }
 
 void Task::suspend() 
@@ -63,46 +30,99 @@ void Task::run()
     setState(RUNNING);            
 }
 
-void Task::elapsedShift(long delay)
+void Task::elapsedShift(long tickShift)
 {
-    ElapsedTick += delay;        
+    elapsedTick += tickShift;        
 }
 
-void PreemptiveOS::start()
+void Task::report()
+{  
+    Serial.print(" Name='");
+    Serial.print(name);     
+    Serial.print("', Interval=");
+    Serial.print(tickInterval); 
+    Serial.print("', Start=");
+    Serial.print(startTick); 
+    Serial.print(", Execution=");
+    Serial.print(executionTick);  
+    Serial.print(", Elapsed=");
+    Serial.print(elapsedTick); 
+    Serial.print(", State=");
+    Serial.println(strRunningState[runningState]); 
+}
+
+/*
+ *  TaskManager Class
+ */
+
+void TaskManager::TaskSwitching()
+{  
+    for (int i=0; i<numberOfTask; i++) {
+        if (taskQueue[i].runningState==RUNNING) {
+            if (taskQueue[i].elapsedTick >= taskQueue[i].tickInterval) {            
+                activeTaskIndex = i;
+                taskQueue[activeTaskIndex].startTick=millis();            
+                taskQueue[activeTaskIndex].Entry();  
+                taskQueue[activeTaskIndex].executionTick = millis()-taskQueue[activeTaskIndex].startTick;
+                //taskQueue[activeTaskIndex].elapsedTick -= taskQueue[activeTaskIndex].tickInterval;
+                taskQueue[activeTaskIndex].elapsedTick =0;
+            
+                // validate the task
+                /*
+                if (taskQueue[activeTaskIndex].ExecutionTick>taskQueue[activeTaskIndex].TickInterval) {
+                    // run time too long
+                    Serial.print("\n****** RTOS : Task # ");  
+                    Serial.print(activeTaskIndex);
+                    Serial.print(" Exhausted Tick = ");
+                    Serial.println(taskQueue[activeTaskIndex].ExecutionTick);
+                    Serial.println();
+                }
+                */
+            } else {
+                activeTaskIndex = -1;
+            }
+        } 
+        else if (taskQueue[i].runningState==SUSPEND) {
+            // Suspended Task
+        }
+    }
+}
+
+void TaskManager::start()
 {    
     lastMillis = millis();
 }
 
-PreemptiveOS::PreemptiveOS()
+TaskManager::TaskManager()
 {
 }
 
-void PreemptiveOS::run()
+void TaskManager::run()
 {  
     unsigned long diffMillis = millis()-lastMillis;
     lastMillis = millis();
     switchCount++;
     
     for (int i=0; i<numberOfTask; i++) {
-        taskQueue[i].ElapsedTick += diffMillis;
+        if (taskQueue[i].runningState==RUNNING) {
+            taskQueue[i].elapsedTick += diffMillis;
+        } 
+        else if (taskQueue[i].runningState==SUSPEND) {
+            // Suspended Task
+        }
     }
     TaskSwitching();
 }
 
-void PreemptiveOS::stop()
-{  
-    //Timer1.detachInterrupt(); // attach the service routine here
-}
 
-
-Task* PreemptiveOS::addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval, TaskState state)
+Task* TaskManager::addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval, TaskState state)
 {
     if (numberOfTask<MaxTaskNumber) {
       taskQueue[numberOfTask].Entry = taskEntry;
-      taskQueue[numberOfTask].Name = taskName;
-      taskQueue[numberOfTask].TickInterval = tickInterval;
-      taskQueue[numberOfTask].ElapsedTick = 0;
-      taskQueue[numberOfTask].ExecutionTick = 0;
+      taskQueue[numberOfTask].name = taskName;
+      taskQueue[numberOfTask].tickInterval = tickInterval;
+      taskQueue[numberOfTask].elapsedTick = 0;
+      taskQueue[numberOfTask].executionTick = 0;
       taskQueue[numberOfTask].setState(state);
       numberOfTask++;
     } else {
@@ -113,41 +133,34 @@ Task* PreemptiveOS::addTask(void (*taskEntry)(), String taskName, unsigned int t
     return (&taskQueue[numberOfTask-1]); //TaskID
 }
 
-void PreemptiveOS::debug()
+void TaskManager::taskListReport()
 {
-    //if (isTaskRunning) return;
-    Serial.print("RunCount = ");
+    Serial.print("*** TaskListReport : SwitchCount = ");
     Serial.print(switchCount);
     Serial.print(", NumberOfTask=");
-    Serial.print(numberOfTask);
-    if (taskRunningIndex>=0) {      
-        Serial.print(", Run Task #");
-        Serial.print(taskRunningIndex);    
-        Serial.print(" Entry=");
-        Serial.print((int)taskQueue[taskRunningIndex].Entry);     
-        Serial.print(" Interval=");
-        Serial.print(taskQueue[taskRunningIndex].TickInterval);   
-        Serial.print(" Elapsed=");
-        Serial.println(taskQueue[taskRunningIndex].ElapsedTick);   
-        Serial.print(" Execution=");
-        Serial.println(taskQueue[taskRunningIndex].ExecutionTick); 
-    } else {
-        Serial.println();
+    Serial.print(numberOfTask);    
+    Serial.print(", ActiveTask#");
+    Serial.println(activeTaskIndex);
+    for (int i=0; i<numberOfTask; i++) {      
+        Serial.print("TASK # ");
+        Serial.print(i);    
+        taskQueue[i].report();
     }
 }
 
-
-void PreemptiveOS::taskReport()
+void TaskManager::activeTaskReport()
 {
-    if (taskRunningIndex>=0) {      
-        taskQueue[taskRunningIndex].ExecutionTick = millis()-taskQueue[taskRunningIndex].startMillis;
-        Serial.print("*** TASK : Run Task #");
-        Serial.print(taskRunningIndex);    
-        Serial.print(", Name=");
-        Serial.print(taskQueue[taskRunningIndex].Name);     
+    if (activeTaskIndex>=0) {      
+        taskQueue[activeTaskIndex].executionTick = millis()-taskQueue[activeTaskIndex].startTick;
+        Serial.print("*** TASK : Active Task #");
+        Serial.print(activeTaskIndex);    
+        Serial.print(", Name='");
+        Serial.print(taskQueue[activeTaskIndex].name);     
+        Serial.print("', Start=");
+        Serial.print(taskQueue[activeTaskIndex].startTick); 
         Serial.print(", Execution=");
-        Serial.print(taskQueue[taskRunningIndex].ExecutionTick); 
-        if (taskQueue[taskRunningIndex].ExecutionTick>taskQueue[taskRunningIndex].TickInterval) {           
+        Serial.print(taskQueue[activeTaskIndex].executionTick); 
+        if (taskQueue[activeTaskIndex].executionTick > taskQueue[activeTaskIndex].tickInterval) {           
             Serial.print(" *** Exhausted ***"); // run time too long
         }
         Serial.println("\n");
@@ -155,4 +168,22 @@ void PreemptiveOS::taskReport()
         Serial.println("No Task");
     }
 }
+
+/*
+ * PreemptiveOS Class
+ */
+PreemptiveOS::PreemptiveOS()
+{
+}
+
+void PreemptiveOS::start()
+{
+    taskManager.start();    
+}
+
+void PreemptiveOS::run()
+{
+    taskManager.run();    
+}
+
 

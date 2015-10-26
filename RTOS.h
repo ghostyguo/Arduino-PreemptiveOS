@@ -13,38 +13,58 @@
 #endif
 
 #define RTOS_VERSION "0.1"
-
+#define  MaxTaskNumber 10
 
 typedef enum  {RUNNING, SUSPEND} TaskState;
 
 class Task {
     public:  
-        long TickInterval;
-        int ElapsedTick;
-        long ExecutionTick;
-        unsigned long startMillis;
-        TaskState State;
-        String Name; 
+        long tickInterval;
+        int elapsedTick;
+        long executionTick;
+        unsigned long startTick;
+        TaskState runningState;
+        String name; 
         
         void (*Entry)();
-        void elapsedShift(long delay);
-        void setState(TaskState state);
+        void elapsedShift(long tickShift);
+        void setState(TaskState taskState);
         void suspend();
         void run();
+        void report();
+};
+
+class TaskManager {
+    public:
+        TaskManager(); //constructor
+        void start();
+        void run();
+        Task* addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval = 1000, TaskState state = RUNNING);
+        void debug();
+        void activeTaskReport();
+        void taskListReport();
+        
+    private:
+        Task taskQueue[MaxTaskNumber];
+        unsigned long lastMillis;        
+        unsigned long switchCount=0;
+        int activeTaskIndex=-1;
+        int numberOfTask=0;
+
+        void TaskSwitching();
 };
 
 class PreemptiveOS {
+    // Other features, blocked I/O, semaphore, 
+    // Not implemented yet   
     public:
-        PreemptiveOS(); //constructor
+        TaskManager taskManager;
+        
+        PreemptiveOS();
         void start();
         void run();
-        void stop();
-        Task* addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval = 1000, TaskState state = RUNNING);
-        void debug();
-        void taskReport();
         
-    private:
-        unsigned long lastMillis;
+    private:        
 };
 
 extern PreemptiveOS RTOS;
