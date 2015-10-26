@@ -88,7 +88,7 @@ void TaskManager::TaskSwitching()
     }
 }
 
-void TaskManager::start()
+void TaskManager::init()
 {    
     lastMillis = millis();
 }
@@ -176,9 +176,9 @@ PreemptiveOS::PreemptiveOS()
 {
 }
 
-void PreemptiveOS::start()
+void PreemptiveOS::init()
 {
-    taskManager.start();    
+    taskManager.init();    
 }
 
 void PreemptiveOS::run()

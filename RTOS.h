@@ -37,7 +37,7 @@ class Task {
 class TaskManager {
     public:
         TaskManager(); //constructor
-        void start();
+        void init();
         void run();
         Task* addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval = 1000, TaskState state = RUNNING);
         void debug();
@@ -61,7 +61,7 @@ class PreemptiveOS {
         TaskManager taskManager;
         
         PreemptiveOS();
-        void start();
+        void init();
         void run();
         
     private:        

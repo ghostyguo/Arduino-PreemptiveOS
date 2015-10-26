@@ -20,7 +20,7 @@ void setup() {
     pMasterWaitThread = RTOS.taskManager.addTask(MasterWaitThread, "MasterWaitThread", 20, SUSPEND);  //wait thread of SendTask, 20ms is expected
     pMasterRcvdThread = RTOS.taskManager.addTask(MasterRcvdThread, "MasterRcvdThread", 50, SUSPEND);  //received thread of SendTask, 50ms is expected
     
-    RTOS.start();
+    RTOS.init();
 }
 
 void loop() {
