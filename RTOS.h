@@ -15,17 +15,20 @@
 #define RTOS_VERSION "0.1"
 
 
-typedef enum  {RUNNING, WAIT} TaskState;
+typedef enum  {RUNNING, SUSPEND} TaskState;
 
 class Task {
     public:  
-        unsigned int TickInterval;
-        unsigned int ElapsedTick;
-        unsigned int ExecutionTick;
+        long TickInterval;
+        int ElapsedTick;
+        long ExecutionTick;
         TaskState State;
         
         void (*Entry)();
+        void elapsedShift(long delay);
         void setState(TaskState state);
+        void suspend();
+        void run();
 };
 
 class PreemptiveOS {
