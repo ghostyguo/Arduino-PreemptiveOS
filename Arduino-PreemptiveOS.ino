@@ -4,19 +4,22 @@
  */
 #include "RTOS.h"
 
-Task *pSendTask, *pWaitThread, *pRcvdThread;
+Task *pMasterTask, *pMasterWaitThread, *pMasterRcvdThread;
 
 void setup() {
-    pinMode(13, OUTPUT);      // 把 ledPin 設置成 output pin
+    randomSeed(analogRead(0));  // simulation initialization
      
     Serial.begin(57600);
-    Serial.println("Begin");
+    Serial.println("Begin");    
     
-    RTOS.addTask(Task0, 5000);
-    RTOS.addTask(Task1, 2000)->elapsedShift(-5000);
-    pSendTask = RTOS.addTask(SendTask, 1000); //Main process
-    pWaitThread = RTOS.addTask(WaitThread, 20, SUSPEND);  //wait thread of SendTask, 20ms is expected
-    pRcvdThread = RTOS.addTask(RcvdThread, 50, SUSPEND);  //received thread of SendTask, 50ms is expected 
+    RTOS.addTask(SlaveTask, "SlaveTask", 20);  //first task has the highest priority
+    RTOS.addTask(Task0, "Task0", 5000);    
+    RTOS.addTask(Task1, "Task1", 2000)->elapsedShift(-5000);
+    
+    pMasterTask = RTOS.addTask(MasterTask, "MasterTask", 1000); //Main process
+    pMasterWaitThread = RTOS.addTask(MasterWaitThread, "MasterWaitThread", 20, SUSPEND);  //wait thread of SendTask, 20ms is expected
+    pMasterRcvdThread = RTOS.addTask(MasterRcvdThread, "MasterRcvdThread", 50, SUSPEND);  //received thread of SendTask, 50ms is expected
+    
     RTOS.start();
 }
 
@@ -44,34 +47,34 @@ void Task1()
 }
 
 /*
- *  IO Processing
+ *  IO Processing Tasks
  */
 int rcvdByteCount;
-void SendTask()
+void MasterTask()
 {
     Serial.print(millis()); 
-    Serial.println("--------------------> SendTask()");    
+    Serial.println("--------------------> MasterTask()");    
     // Perform the send function
     // ......
     delay(10+random(10)); //Simulation of running time
 
     // Enable next task
     rcvdByteCount = 0;
-    pWaitThread->run();
+    pMasterWaitThread->run();
 
     RTOS.taskReport();   // task report
 }
 
-void WaitThread()
+void MasterWaitThread()
 {
     Serial.print(millis()); 
-    Serial.println("--------------------> WaitThread()");    
+    Serial.println("--------------------> MasterWaitThread()");    
     // Check if data is received complete
     // ...
     delay(2+random(3)); //Simulation of running time
     if (rcvdByteCount>2) {
-        pWaitThread->suspend(); // suspend myself thread
-        pRcvdThread->run(); // enable next thread, or directly call the post data processing function
+        pMasterWaitThread->suspend(); // suspend myself thread
+        pMasterRcvdThread->run(); // enable next thread, or directly call the post data processing function
     } else {
         if (random(10)>3) rcvdByteCount++; //Simulation of blocked IO
     }
@@ -79,18 +82,36 @@ void WaitThread()
     RTOS.taskReport();    // task report
 }
 
-void RcvdThread()
+void MasterRcvdThread()
 {
     Serial.print(millis()); 
-    Serial.println("--------------------> RcvdThread()");    
+    Serial.println("--------------------> MasterRcvdThread()");    
 
     // Post processing of data
     // ...
     delay(30+random(30)); //Simulation of running time, maybe learge then expected time (50ms)
     
-    pRcvdThread->suspend(); // suspend myself thread, SendTask is finished
+    pMasterRcvdThread->suspend(); // suspend myself thread, SendTask is finished
     
     RTOS.taskReport();    // task report
 }
+
+void SlaveTask()
+{
+    //Serial.print(millis()); 
+    //Serial.println("--------------------> SlaveTask()");
+    if (random(30)>0) { //Simulation of data receiveing
+        return; // not received
+    }
+    //received
+    Serial.print(millis()); 
+    Serial.println("--------------------------------------------------------------------> SlaveTask()");
+    //
+    // Response of data
+    delay(20+random(10)); //Simulation of running time, maybe learge then expected time (50ms)
+    
+    RTOS.taskReport();    // task report
+}
+
 
 

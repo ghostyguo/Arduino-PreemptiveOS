@@ -22,7 +22,9 @@ class Task {
         long TickInterval;
         int ElapsedTick;
         long ExecutionTick;
+        unsigned long startMillis;
         TaskState State;
+        String Name; 
         
         void (*Entry)();
         void elapsedShift(long delay);
@@ -33,12 +35,16 @@ class Task {
 
 class PreemptiveOS {
     public:
+        PreemptiveOS(); //constructor
         void start();
         void run();
         void stop();
-        Task* addTask(void (*taskEntry)(), unsigned int tickInterval = 1000, TaskState state = RUNNING);
+        Task* addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval = 1000, TaskState state = RUNNING);
         void debug();
         void taskReport();
+        
+    private:
+        unsigned long lastMillis;
 };
 
 extern PreemptiveOS RTOS;

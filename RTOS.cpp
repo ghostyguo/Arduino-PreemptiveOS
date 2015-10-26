@@ -9,7 +9,7 @@
 PreemptiveOS RTOS;
 
 unsigned long switchCount=0;
-unsigned long lastMillis;
+//
 Task taskQueue[MaxTaskNumber];
 int taskRunningIndex=-1;
 int numberOfTask=0;
@@ -20,22 +20,23 @@ void TaskSwitching()
         if (taskQueue[i].State==RUNNING) {
             if (taskQueue[i].ElapsedTick >= taskQueue[i].TickInterval) {            
                 taskRunningIndex = i;
-                unsigned long startMillis=millis();
-            
+                taskQueue[taskRunningIndex].startMillis=millis();            
                 taskQueue[taskRunningIndex].Entry();  
-                taskQueue[taskRunningIndex].ExecutionTick = millis()-startMillis;
+                taskQueue[taskRunningIndex].ExecutionTick = millis()-taskQueue[taskRunningIndex].startMillis;
                 //taskQueue[taskRunningIndex].ElapsedTick -= taskQueue[taskRunningIndex].TickInterval;
                 taskQueue[taskRunningIndex].ElapsedTick =0;
             
                 // validate the task
+                /*
                 if (taskQueue[taskRunningIndex].ExecutionTick>taskQueue[taskRunningIndex].TickInterval) {
                     // run time too long
-                    Serial.print("\n****** RTOS REPORT : Task # ");  
+                    Serial.print("\n****** RTOS : Task # ");  
                     Serial.print(taskRunningIndex);
-                    Serial.print(" Execution exhausted, Tick = ");
+                    Serial.print(" Exhausted Tick = ");
                     Serial.println(taskQueue[taskRunningIndex].ExecutionTick);
                     Serial.println();
                 }
+                */
             } else {
                 taskRunningIndex = -1;
             }
@@ -72,6 +73,10 @@ void PreemptiveOS::start()
     lastMillis = millis();
 }
 
+PreemptiveOS::PreemptiveOS()
+{
+}
+
 void PreemptiveOS::run()
 {  
     unsigned long diffMillis = millis()-lastMillis;
@@ -90,10 +95,11 @@ void PreemptiveOS::stop()
 }
 
 
-Task* PreemptiveOS::addTask(void (*taskEntry)(), unsigned int tickInterval, TaskState state)
+Task* PreemptiveOS::addTask(void (*taskEntry)(), String taskName, unsigned int tickInterval, TaskState state)
 {
     if (numberOfTask<MaxTaskNumber) {
       taskQueue[numberOfTask].Entry = taskEntry;
+      taskQueue[numberOfTask].Name = taskName;
       taskQueue[numberOfTask].TickInterval = tickInterval;
       taskQueue[numberOfTask].ElapsedTick = 0;
       taskQueue[numberOfTask].ExecutionTick = 0;
@@ -134,10 +140,17 @@ void PreemptiveOS::debug()
 void PreemptiveOS::taskReport()
 {
     if (taskRunningIndex>=0) {      
-        Serial.print("Run Task #");
-        Serial.print(taskRunningIndex);      
-        Serial.print(" Execution=");
-        Serial.println(taskQueue[taskRunningIndex].ExecutionTick); 
+        taskQueue[taskRunningIndex].ExecutionTick = millis()-taskQueue[taskRunningIndex].startMillis;
+        Serial.print("*** TASK : Run Task #");
+        Serial.print(taskRunningIndex);    
+        Serial.print(", Name=");
+        Serial.print(taskQueue[taskRunningIndex].Name);     
+        Serial.print(", Execution=");
+        Serial.print(taskQueue[taskRunningIndex].ExecutionTick); 
+        if (taskQueue[taskRunningIndex].ExecutionTick>taskQueue[taskRunningIndex].TickInterval) {           
+            Serial.print(" *** Exhausted ***"); // run time too long
+        }
+        Serial.println("\n");
     } else {
         Serial.println("No Task");
     }
