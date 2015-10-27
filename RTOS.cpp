@@ -13,6 +13,11 @@ const char *strRunningState[] = {"RUNNING","SUSPEND"};
 /*
  * Task Class
  */
+Task::Task()
+{
+    
+}
+ 
 void  Task::setState(TaskState taskState)
 {
     runningState = taskState;
@@ -170,7 +175,23 @@ void TaskManager::activeTaskReport()
 }
 
 /*
- * PreemptiveOS Class
+ *  Process Class
+ */
+Process::Process()
+{
+  
+}
+
+/*
+ *  Thread Class
+ */
+Thread::Thread()
+{
+  
+}
+
+/*
+ *  PreemptiveOS Class
  */
 PreemptiveOS::PreemptiveOS()
 {

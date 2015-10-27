@@ -25,7 +25,8 @@ class Task {
         unsigned long startTick;
         TaskState runningState;
         String name; 
-        
+
+        Task(); //Constructor
         void (*entry)();
         void elapsedShift(long tickShift);
         void setState(TaskState taskState);
@@ -54,13 +55,26 @@ class TaskManager {
         void TaskSwitching();
 };
 
+class Process : Task {
+    // Not implemented yet   
+    public:
+        Process();   //constructor
+};
+
+class Thread : Task {
+    // Not implemented yet   
+    public:
+        Task *parent;        
+        Thread();   //constructor
+};
+
 class PreemptiveOS {
     // Other features, blocked I/O, semaphore, 
     // Not implemented yet   
     public:
         TaskManager taskManager;
         
-        PreemptiveOS();
+        PreemptiveOS();   //constructor
         void init();
         void run();
         
