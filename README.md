@@ -1,5 +1,5 @@
 A typical IOT application (e.g., data collector, gateway ...) is limited by an acceptable response time for multiple I/O ports. There are many waiting phases in the send-receive and the receive-response procedures.
 The simple preemptive RTOS (real time operation system) for Arduino is implemented to solve the multi-port I/O problem. Only task level switching is supported. Two states, the running state and the suspend state, are implemented in this version.
 The processes and the threads are conecptually used is the demo code. Tasks are added to the TaskManager, which periodically call the task entry function at an allocated time interval by the best effort method.
-However, a task may run longer than the allocated interval. The TaskManager calculates the running ticks of each task for system performance analysis. The programmer must take car of the dead task problem by himself. 
+However, a task may run longer than the allocated interval. The TaskManager calculates the running ticks of each task for system performance analysis. The programmer must take care of the dead task problem by himself. 
 Because of the blocked I/O natures of the peripheral drivers, more efforts may be required to improve the task switching performance.
